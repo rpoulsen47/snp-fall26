@@ -1,4 +1,4 @@
-# nps-fall-foliage
+# snp-fall26
 ## Overview
 <a href="https://richmond.edu/"><img src="logos/ur.png" align="right" height="138" alt="University of Richmond Website" /></a>
 <a href="https://geography.richmond.edu/"><img src="logos/leif.png" align="right" height="138" alt="UR Geography Website" /></a>
