@@ -20,7 +20,9 @@ pth = r"/Volumes/hurricane/snp-fall26/data/predictors/prism/ppt/2000"
 # Ideally keep the files together in their respective directories
 for file in glob.glob(os.path.join(r'F:', pth, '**/*.zip'), recursive=True):
     with ZipFile(file) as zObject:
-        zObject.extractall(path=pth)
+        for i in zObject.filelist:
+            print(i.filename)
+        # zObject.extractall(path=pth)
     zObject.close()
 
 
