@@ -1,12 +1,12 @@
 """
-unzipper.py
+prism.py
 HILARIOUS ATTEMPT TO WORK WITH AN UNGODLY AMOUNT OF DATA.
 The goal of this program is to take 80GB of climate data,
 and turn it into 5 individual rasters.
 
 Author....Ryan Poulsen
 Created...10/05/2026
-Updated...10/07/2026
+Updated...10/08/2026
 
 Made with <3, fueled by french-press coffee.
 """
@@ -15,6 +15,10 @@ from zipfile import ZipFile
 import os
 import glob
 
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import rioxarray as rxr
+import xarray as xr
 
 def prism_unzipper(pths: list) -> None:
     """
@@ -33,20 +37,29 @@ def prism_unzipper(pths: list) -> None:
                         zObject.extract(i, f"{pth}/{subdir}") # Extract all monthly tifs to a year folder
             zObject.close()
 
-def prism_clipper(aoi):
+def prism_clipper(aoi, pth):
     """
     Clips the PRISM data to the desired AOI.
     ### Parameters
     * **aoi**: 
-        * Area of Interest shapefile
+        * Area of Interest shapefile (geopandas)
+    * **pth**: 
+        * Directory with the files to be clipped
     """
-    pass
+    rstlst = glob.glob(f"{pth}/*.tif")
+    for file in rstlst:
+        rst = rxr.open_rasterio(file)
+        rst_rprj = rst.rio.reproject(aoi.crs)
+        rst_rprj_clp = rst_rprj.rio.clip_box(aoi.bounds["minx"], aoi.bounds["miny"], aoi.bounds["maxx"], aoi.bounds["maxy"])
+        rst_rprj_clp.rio.to_raster(f"{file[:-4]}_snp.tif")
 
-def prism_seasonal():
+
+def prism_seasonal(szns, pth):
     """
     Creates seasonal rasters for the PRISM data
     5 rasters per year ()
     """
+    
     pass
 
 def prism_change():
@@ -57,7 +70,11 @@ def prism_change():
     pass
 
 pths = [r"/Volumes/hurricane/snp-fall26/data/predictors/prism/ppt"]
-prism_unzipper(pths)
+aoi = gpd.read_file("data/snp.gpkg")
+pth = r"/Volumes/hurricane/snp-fall26/data/predictors/prism/ppt/prism_ppt_us_30s_2000"
+szns = [["03", "04", "05"], ["06", "07", "08"], ["09", "10", "11"]]
+prism_clipper(aoi, pth)
+# prism_unzipper(pths)
 
 
 # References
