@@ -54,13 +54,27 @@ def prism_clipper(aoi, pth):
         rst_rprj_clp.rio.to_raster(f"{file[:-4]}_snp.tif")
 
 
-def prism_seasonal(szns, pth):
+def prism_seasonal(pth):
     """
-    Creates seasonal rasters for the PRISM data
-    5 rasters per year ()
+    Creates seasonal rasters for the PRISM data (Spring Summer Fall)
+    3 rasters per year ()
     """
-    
-    pass
+    szns = [["03", "04", "05"], ["06", "07", "08"], ["09", "10", "11"]]
+    szn_nms = ["MAM", "JJA", "SON"]
+
+    szn_rsts = []
+    for szn in szns:
+        rsts = []
+        for month in szn:
+            rst = rxr.open_rasterio(glob.glob(f"/Volumes/hurricane/snp-fall26/data/predictors/prism/ppt/prism_ppt_us_30s_2000/*{month}_*np.tif")[0])
+            rsts.append(rst)
+        szn_rst = (rsts[0] + rsts[1] + rsts[2])/3
+        szn_rsts.append(szn_rst)
+
+    for rst, nm in zip(szn_rsts, szn_nms):
+        rst.rio.to_raster(f"{pth}/{nm}.tif")
+        pass
+
 
 def prism_change():
     """
