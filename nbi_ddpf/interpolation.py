@@ -4,7 +4,7 @@ HILARIOUS ATTEMPT TO MAKE THIS A GIANT PROGRAM
 
 Author....Ryan Poulsen
 Created...11/04/2025
-Updated...12/22/2025
+Updated...10/28/2026
 
 Made with <3, fueled by mint tea and chocolate chips.
 """
@@ -28,7 +28,7 @@ from scipy import interpolate, optimize, signal
 import matplotlib.pyplot as plt
 
 # Raster Functions
-def temporal_stack(data_src: str) -> xr.DataArray:
+def temporal_stack(data_src: str, year: int, band: int) -> xr.DataArray:
     """
     Reads in MODIS data from a directory, then creates a new `DataArray` on the dimension *doy*.
     ### Parameters
@@ -38,20 +38,20 @@ def temporal_stack(data_src: str) -> xr.DataArray:
     * `DataArray`
         * The new `DataArray` stacked by *doy*.
     """
-    rasters = sorted(glob.glob(os.path.expanduser(data_src))) # Get all paths to files in data_src
+    rasters = sorted(glob.glob(os.path.join(r'F:', data_src, f'*Band{band}*doy{year}*.tif'), recursive=True)) # Get all paths to files in data_src
     crs_src = rxr.open_rasterio(rasters[0], masked=True).squeeze("band", drop=True).rio.crs # Get the crs of the first raster in the directory to use as template for the others to ensure all rasters match.
 
-    rsts, doys = [], []
-    year = 0
-    for r in rasters:
+    rsts, doys = [], [] # blank lists for rasters and doys
+    year = None # empty variable for the year
+    for r in rasters: # for each raster, open it, get the date, reproject it, then add the raster and the doy to the rsts and doys lists respectively
         rio_r = rxr.open_rasterio(r, masked=True).squeeze("band", drop=True)
-        year, doy = get_date(r)
+        year, doy = get_date(r) # get the year and the doy with the get_date() function (uses filename)
         rio_r.rio.reproject(crs_src) # Might not be necessary, but is probably good practice to ensure that all rasters are in the same crs
         rsts.append(rio_r)
         doys.append(doy)
 
     data = xr.Dataset({d: r for d, r in zip(doys, rsts)}).to_array(dim="doy") # Creates a new DataArray with each band stacked.
-    data.attrs.update({"year":year})
+    data.attrs.update({"year":year}) # add the year as an attribute
     return data
 
 def get_date(path: str) -> tuple:
@@ -82,7 +82,7 @@ def export_data(rs:xr.DataArray, path:str, prefix:str="rs") -> None:
     * `None`
     """
     for r in rs:
-        out = f"{os.path.expanduser(path)}/{prefix}_doy{rs.attrs["year"]}{int(r.doy):03d}.tif"
+        out = f"{os.path.expanduser(path)}/{prefix}_doy{rs.attrs['year']}{int(r.doy):03d}.tif"
         r.rio.to_raster(out)
 
 
@@ -127,7 +127,7 @@ def interpolate_pixel(rs: xr.DataArray, x:int, y:int, display:bool=False) -> np.
         plt.ylim(0, 1)
         plt.xlabel("Day of Year")
         plt.ylabel("NDVI Value")
-        plt.title(f"NDVI Values in {rs.attrs["year"]} at x{x}, y{y}")
+        plt.title(f"NDVI Values in {rs.attrs['year']} at x{x}, y{y}")
         plt.legend()
         plt.show()
 
@@ -152,20 +152,7 @@ def temporal_interpolation(rs:xr.DataArray) -> xr.DataArray:
                 rs_new.sel({'doy':ind+1})[y][x] = val # Sets the values of the current pixel to be the new_vals.
     return rs_new
 
-# NDVI Functions
-def ndvi(red: xr.DataArray, nir: xr.DataArray) -> xr.DataArray:
-    """
-    Calculates the Normalized Difference Vegetation Index given red and nir bands.
-    ### Parameters
-    * **red**: `DataArray`
-    * **nir**: `DataArray`
-    ### Returns
-    * `DataArray`
-        * Normalized Difference Vegetation Index
-    """
-    ndvi = (nir - red) / (nir + red)
-    ndvi.attrs.update(red.attrs) 
-    return ndvi
+
 
 def smooth_ndvi(ndvi: list, window_width: int = 32, order: int = 0) -> xr.DataArray:
     """
@@ -211,22 +198,6 @@ def logistic_fall(x, a: float, b: float, c: float, d: float, x0 = 186):
     """
     #IT WORKKKEKDD! LET'S FUCKING GOOOOOOOOOOOOOO
     return (c/(1+np.exp(a+b*(x-x0))))+d
-
-def nbi(x, pA, pB, x0: int = 186):
-    """
-    (Zhang et al., 2011)\n
-    ### Parameters
-    * **x**: `array`\n
-        * The doys
-    * **pA**: `DataArray`
-        * Leaf development parameter a (from logistic_fall)
-    * **pB**: `DataArray`
-        * Leaf development parameter b (from logistic_fall)
-    ### Returns
-    * `DataArray`
-        * Normalized Difference Brownnness Index
-    """
-    return 1-1/(1+np.exp(pA+(x-x0)*pB))
 
 def logistic_pixel(ndvi_rs: xr.DataArray, x:int, y:int, start:int=180, end:int=366) -> list:
     """
