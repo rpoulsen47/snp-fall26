@@ -12,6 +12,7 @@ Made with <3, patagonia time forever.
 # raster
 import xarray as xr
 import rioxarray as rxr
+import numpy as np
 
 # NDVI Functions
 def ndvi(red: xr.DataArray, nir: xr.DataArray) -> xr.DataArray:

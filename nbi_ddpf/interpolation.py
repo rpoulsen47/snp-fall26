@@ -54,6 +54,33 @@ def temporal_stack(data_src: str, year: int, band: int) -> xr.DataArray:
     data.attrs.update({"year":year}) # add the year as an attribute
     return data
 
+def temporal_stack(data_src: str) -> xr.DataArray:
+    """
+    Reads in MODIS data from a directory, then creates a new `DataArray` on the dimension *doy*.
+    ### Parameters
+    * **data_src**: `str`
+        * Path to the directory with the data.
+    ### Returns
+    * `DataArray`
+        * The new `DataArray` stacked by *doy*.
+    """
+    rasters = sorted(glob.glob(os.path.join(r'F:', data_src, f'*.tif'), recursive=True)) # Get all paths to files in data_src
+    crs_src = rxr.open_rasterio(rasters[0], masked=True).squeeze("band", drop=True).rio.crs # Get the crs of the first raster in the directory to use as template for the others to ensure all rasters match.
+
+    rsts, doys = [], [] # blank lists for rasters and doys
+    year = None # empty variable for the year
+    for r in rasters: # for each raster, open it, get the date, reproject it, then add the raster and the doy to the rsts and doys lists respectively
+        rio_r = rxr.open_rasterio(r, masked=True).squeeze("band", drop=True)
+        year, doy = get_date(r) # get the year and the doy with the get_date() function (uses filename)
+        rio_r.rio.reproject(crs_src) # Might not be necessary, but is probably good practice to ensure that all rasters are in the same crs
+        rsts.append(rio_r)
+        doys.append(doy)
+
+    data = xr.Dataset({d: r for d, r in zip(doys, rsts)}).to_array(dim="doy") # Creates a new DataArray with each band stacked.
+    data.attrs.update({"year":year}) # add the year as an attribute
+    return data
+
+
 def get_date(path: str) -> tuple:
     """
     Gets information about the date of a raster from filepath. ("doyYEARDOY" must be present in filepath)
@@ -172,6 +199,7 @@ def smooth_ndvi(ndvi: list, window_width: int = 32, order: int = 0) -> xr.DataAr
         * The smoothed ndvi data.
     """
     return doy_dim(xr.DataArray(signal.savgol_filter(ndvi, window_width, order)))
+    # return doy_dim(xr.DataArray(signal.savgol_filter(ndvi, window_width, order)))
 
 # NBI Functions
 def logistic_fall(x, a: float, b: float, c: float, d: float, x0 = 186):
