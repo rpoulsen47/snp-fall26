@@ -37,7 +37,7 @@ Temporally interpolates raster data by the *doy* dimension. Iterates through the
 * `DataArray`
     * New interpolated raster
 
-## `interpolation.ndvi()`
+## `index.ndvi()`
 Calculates the Normalized Difference Vegetation Index given red and nir bands.
 ### Parameters
 * **red**: `DataArray`
@@ -46,7 +46,7 @@ Calculates the Normalized Difference Vegetation Index given red and nir bands.
 * `DataArray`
     * Normalized Difference Vegetation Index
 
-## `interpolation.smooth_ndvi()`
+## `index.smooth_ndvi()`
 Uses a Savitzky-Golay smoothing filter to smooth the ndvi data.
 ### Parameters
 * **ndvi**: `array`
@@ -62,7 +62,7 @@ Uses a Savitzky-Golay smoothing filter to smooth the ndvi data.
 * `array`
     * The smoothed ndvi data.
 
-## `interpolation.nbi()`
+## `index.nbi()`
 Calculates the Temporally-Normalized Brownness Index (NBI) for a pixel. Based on methodology from Zhang & Goldberg, 2011
 ### Parameters
 * **x**: `array`
