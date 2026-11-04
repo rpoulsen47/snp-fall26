@@ -1,16 +1,17 @@
 """
 index.py
-Script of vegetation indices; NDVI & NBI
+Script of vegetation indices and their helpers; NDVI & NBI
 
 Author....Ryan Poulsen
 Created...10/28/2026
-Updated...11/03/2026
+Updated...11/04/2026
 
 Made with <3, patagonia time forever.
 """
 
 import numpy as np
 import xarray as xr
+import rioxarray as rxr
 from scipy import optimize, signal
 
 # NDVI Functions
@@ -48,7 +49,69 @@ def smooth_ndvi(ndvi: list, window_width: int = 32, order: int = 0) -> xr.DataAr
     return doy_dim(xr.DataArray(signal.savgol_filter(ndvi, window_width, order)))
     # return doy_dim(xr.DataArray(signal.savgol_filter(ndvi, window_width, order)))
 
-def nbi(x, pA, pB, x0: int = 186):
+def smooth_autumn_ndvi(ndvi, start = 186) -> list[xr.DataArray]:
+    """
+    Creates three DataArrays for the maxNDVI, the minNDVI, and baseNDVI of each pixel in the raster for one year's autumn season.
+    ### Parameters
+    * **ndvi**: `DataArray`
+        * Input ndvi data for a specific autumn season.
+    ### Returns
+    * `list[DataArray]`
+        * New interpolated raster.
+    """
+    ndvi_smoothed = xr.DataArray(signal.savgol_filter(ndvi, 32, 0), coords=ndvi.coords, attrs=ndvi.attrs)
+    autumn_ndvi_smoothed = ndvi_smoothed[start:len(ndvi_smoothed)-1]
+    return autumn_ndvi_smoothed#.swap_dims({"dim_0":"doy", "dim_1":"y", "dim_2":"x"})
+
+def nbi(autumn_ndvi: list[xr.DataArray]) -> tuple[xr.DataArray]:
+    """
+    Creates three DataArrays for the maxNDVI, the minNDVI, and baseNDVI of each pixel in the raster for one year's autumn season.
+    ### Parameters
+    * **ndvi**: `DataArray`
+        * Input ndvi data for a specific autumn season.
+    ### Returns
+    * `list[DataArray]`
+        * New interpolated raster.
+    * `list[DataArray]`
+        * New interpolated raster.
+    """
+    nbi_rs = autumn_ndvi[0].copy(True)
+    peak_date_rs = autumn_ndvi[0].copy(True)
+
+    for y in range(0, len(autumn_ndvi.y)-1):
+        if y == 11: 
+            return nbi_rs, peak_date_rs
+        for x in range(0, len(autumn_ndvi.x)-1):
+            doy_vals = []
+            for doy in range(0, len(autumn_ndvi.doy)-1):
+                doy_vals.append(autumn_ndvi[doy][y][x])
+
+            maxNDVI = max(doy_vals) # Calculate Input Params
+            minNDVI = min(doy_vals) # Calculate Input Params
+            baseNDVI = maxNDVI - minNDVI # Calculate Input Params
+            pIn = [baseNDVI, 0.5, baseNDVI, minNDVI] # Initial guess at the parameters to feed into optimize
+            autumn_doy = np.array([i for i in range(len(autumn_ndvi.doy)-1)]) + 186
+
+            param, covariance = optimize.curve_fit(f=logistic_fall, xdata=autumn_doy, ydata=doy_vals, p0=pIn, sigma=1, maxfev=5000) # Find the logistic fall equation that fits the NDVI data, Parameters of the logistic fall curve from optimize.curve_fit and covariance
+            # print(param)
+
+            # Normalized Brownness Index
+            paramA = param[0]
+            paramB = param[1]
+
+            nbi_autumn = nbi_pixel(x=autumn_doy, pA=paramA, pB=paramB) # Calculate NBI using the leaf development parameters from the Logistic Fall Function
+            try:
+                nbi_rs[y][x] = nbi_autumn[np.where(nbi_autumn >= 0.6)[0][0]]
+                peak_date_rs[y][x] = autumn_doy[np.where(nbi_autumn >= 0.6)[0][0]]
+            except IndexError:
+                nbi_rs[y][x] = -999
+                peak_date_rs[y][x] = -999
+
+            print(f"({int(peak_date_rs[y][x])}, {float(nbi_rs[y][x])}) @ ({x}, {y})")
+
+    return nbi_rs, peak_date_rs
+
+def nbi_pixel(x, pA, pB, x0: int = 186):
     """
     (Zhang et al., 2011)\n
     ### Parameters
@@ -141,5 +204,5 @@ def calculate_peak_pixel(ndvi_rs: xr.DataArray, start:int=180, end:int=366):
             params = logistic_pixel(ndvi_autumn_sm, x, y, start, end)
             print(params)
 
-def doy_dim(rs: xr.DataArray):
-    return rs.expand_dims({"doy": [doy for doy in range(1, len(rs)+1)]})
+def doy_dim(rs: xr.DataArray, start_doy = 1):
+    return rs.expand_dims({"doy": [doy for doy in range(start_doy, len(rs)+1)]})
