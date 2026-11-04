@@ -4,7 +4,7 @@ Script of vegetation indices; NDVI & NBI
 
 Author....Ryan Poulsen
 Created...10/28/2026
-Updated...11/02/2026
+Updated...11/03/2026
 
 Made with <3, patagonia time forever.
 """
@@ -69,10 +69,8 @@ def logistic_fall(x, a: float, b: float, c: float, d: float, x0 = 186):
     """
     Adapted from Zhang et al., 2011 and Spera et al., 2023\n
     ### Parameters
-    * **x**: `array`
+    * **x**: `np.array`
         * Doy
-    * **x0**: `float`
-        * Starting x value; offset.
     * **a**: `float`
         * Leaf development parameter a
     * **b**: `float`
@@ -81,13 +79,12 @@ def logistic_fall(x, a: float, b: float, c: float, d: float, x0 = 186):
         * base NDVI value
     * **d**: `float`
         * Minimum NDVI value (c+d = maxNDVI value)
-    * **t**: `int`\n
-        * Time in days
+    * **x0**: `float`
+        * Starting x value; offset.
     ### Returns
-    * `array`
+    * `np.array`
         * Sigmoidal function values
     """
-    #IT WORKKKEKDD! LET'S FUCKING GOOOOOOOOOOOOOO
     return (c/(1+np.exp(a+b*(x-x0))))+d
 
 def logistic_pixel(ndvi_rs: xr.DataArray, x:int, y:int, start:int=180, end:int=366) -> list:
