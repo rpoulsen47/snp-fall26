@@ -4,7 +4,7 @@ Script of vegetation indices and their helpers; NDVI & NBI
 
 Author....Ryan Poulsen
 Created...10/28/2026
-Updated...11/04/2026
+Updated...11/05/2026
 
 Made with <3, patagonia time forever.
 """
@@ -78,10 +78,8 @@ def nbi(autumn_ndvi: list[xr.DataArray]) -> tuple[xr.DataArray]:
     nbi_rs = autumn_ndvi[0].copy(True)
     peak_date_rs = autumn_ndvi[0].copy(True)
 
-    for y in range(0, len(autumn_ndvi.y)-1):
-        if y == 11: 
-            return nbi_rs, peak_date_rs
-        for x in range(0, len(autumn_ndvi.x)-1):
+    for y in range(0, len(autumn_ndvi.y)):
+        for x in range(0, len(autumn_ndvi.x)):
             doy_vals = []
             for doy in range(0, len(autumn_ndvi.doy)-1):
                 doy_vals.append(autumn_ndvi[doy][y][x])
