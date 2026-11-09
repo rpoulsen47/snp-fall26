@@ -4,7 +4,7 @@ HILARIOUS ATTEMPT TO MAKE THIS A GIANT PROGRAM
 
 Author....Ryan Poulsen
 Created...11/04/2025
-Updated...11/02/2026
+Updated...11/09/2026
 
 Made with <3, fueled by mint tea and chocolate chips.
 """
@@ -28,7 +28,7 @@ from scipy import interpolate, optimize, signal
 import matplotlib.pyplot as plt
 
 # Raster Functions
-def temporal_stack(data_src: str, year: int, band: int) -> xr.DataArray:
+def temporal_stack_from_file(data_src: str, year: int, band: int) -> xr.DataArray:
     """
     Reads in MODIS data from a directory, then creates a new `DataArray` on the dimension *doy*.
     ### Parameters
@@ -171,10 +171,11 @@ def temporal_interpolation(rs:xr.DataArray) -> xr.DataArray:
     * `DataArray`
         * New interpolated raster.
     """
-    rs_new = rs.copy() # Create a copy of the original raster to update with interpolated data
+    rs_new = rs.copy(deep=True) # Create a copy of the original raster to update with interpolated data
     for y in range(rs.shape[1]):
         for x in range(rs.shape[2]):
             new_vals = interpolate_pixel(rs=rs, y=int(y), x=int(x)) # New, interpolated, value for each doy in a pixel
-            for ind, val in enumerate(new_vals):
-                rs_new.sel({'doy':ind+1})[y][x] = val # Sets the values of the current pixel to be the new_vals.
+            doys = [int(i.doy) for i in rs]
+            for doy, val in zip(doys, new_vals):
+                rs_new.sel({'doy':doy})[y][x] = val # Sets the values of the current pixel to be the new_vals.
     return rs_new
