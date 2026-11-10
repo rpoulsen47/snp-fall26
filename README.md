@@ -19,7 +19,7 @@ Zhang, X., & Goldberg, M. D. (2011). Monitoring fall foliage coloration dynamics
 - - -
 
 # Documentation
-## `interpolation.temporal_stack()`
+## `interpolation.stack_on_doy()`
 Reads in MODIS data from a directory, then creates a new `DataArray` on the dimension *doy* (day of year).
 ### Parameter
 * **data_src**: `str`
@@ -28,7 +28,7 @@ Reads in MODIS data from a directory, then creates a new `DataArray` on the dime
 * `DataArray`
     * The new `DataArray` stacked by *doy*.
 
-## `interpolation.temporal_interpolation()`
+## `interpolation.temporally_weighted_interpolation()`
 Temporally interpolates raster data by the *doy* dimension. Iterates through the raster pixel-by-pixel.
 ### Parameter
 * **rs**: `DataArray`
@@ -46,7 +46,7 @@ Calculates the Normalized Difference Vegetation Index given red and nir bands.
 * `DataArray`
     * Normalized Difference Vegetation Index
 
-## `index.smooth_ndvi()`
+## `index.smooth_autumn_ndvi()`
 Uses a Savitzky-Golay smoothing filter to smooth the ndvi data.
 ### Parameters
 * **ndvi**: `array`
