@@ -4,58 +4,34 @@ HILARIOUS ATTEMPT TO CULMINATE YEARS OF WORK.
 
 Author....Ryan Poulsen
 Created...10/27/2026
-Updated...11/04/2026
+Updated...11/09/2026
 
-Made with <3, patagonia time forever.
+Made with <3, how lucky are we?
 """
 
 import interpolation as interp
 import index
-import rioxarray as rxr
-import xarray as xr
-import numpy as np
-from scipy import optimize
-import matplotlib.pyplot as plt
-import geopandas as gpd
 
-# Load data, calculate NDVI
-years = [year for year in range(2000,2026)] # list of all years
+# Set year range, load data
+years = [year for year in range(2000,2006)] # list of all years
 data_src = "/Volumes/hurricane/snp-fall26/data/modis/mcd43a4_061/" # Raw modis data source
 
-band1 = interp.temporal_stack_from_file(data_src=data_src, year=years[0], band=1) # Load Band1 files and stack by time dimension
-band2 = interp.temporal_stack_from_file(data_src=data_src, year=years[0], band=2) # Load Band2 files and stack by time dimension
+for year in years: # run the following code for each year in the study period
 
-ndvi_rs = index.ndvi(band1, band2) # Calculate ndvi
+    band1 = interp.stack_on_doy(data_src=data_src, year=year, band=1) # Load Band1 files and stack by time dimension
+    band2 = interp.stack_on_doy(data_src=data_src, year=year, band=2) # Load Band2 files and stack by time dimension
 
-# interp.export_data(ndvi_rs, "/Volumes/hurricane/snp-fall26/data/modis/ndvi/", "ndvi") # Export ndvi data to .tif files
+    ndvi_rs = index.ndvi(band2, band1) # Calculate ndvi
 
-# Interpolate NDVI data
-start, end = 186, 365 # Start and end indexes (middle of year, end of year)
+    # Interpolate NDVI data
+    ndvi_rs_int = interp.temporally_weighted_interpolation(ndvi_rs)
+    interp.export_doy_stack(ndvi_rs_int, f"/Volumes/hurricane/snp-fall26/output/ndvi/", "ndvi_interpolated") # Export ndvi data to .tif files
 
-print(ndvi_rs)
-ndvi_rs_int = interp.temporal_interpolation(ndvi_rs)
-interp.export_data(ndvi_rs_int, "/Volumes/hurricane/snp-fall26/data/modis/ndvi_interp/", "ndvi_interp") # Export ndvi data to .tif files
+    # Smooth Autumn NDVI Values
+    autumn_ndvi_smoothed = index.smooth_senescent_ndvi(ndvi_rs_int)
 
-# Interpolate NDVI Values
-# ndvi_rs_int = interp.temporal_stack_from_file(data_src="/Volumes/hurricane/snp-fall26/data/modis/ndvi_interp/") # Load ndvi files and stack by time dimension
+    # Calculate NBI
+    nbi_rs, peak_date_rs = index.nbi(autumn_ndvi_smoothed)
 
-
-# # Clip the raster to the shape
-# ndvi_rs_int_clip = ndvi_rs_int.rio.clip()
-
-# # Smooth Autumn NDVI Values
-# autumn_ndvi_smoothed = index.smooth_autumn_ndvi(ndvi_rs_int_clip)
-
-# # # Calculate NBI
-# nbi_rs, peak_date_rs = index.nbi(autumn_ndvi_smoothed)
-
-# peak_date_rs.rio.to_raster("/Volumes/hurricane/snp-fall26/data/modis/nbi_test/dpf_2004_sub.tif")
-# nbi_rs.rio.to_raster("/Volumes/hurricane/snp-fall26/data/modis/nbi_test/nbi_2004_sub.tif")
-
-
-
-
-# Should I clip the DPF raster to just the deciduous/mixed forest as determined by LANDFIRE?
-
-
-# check px y 0 x 144
+    peak_date_rs.rio.to_raster(f"/Volumes/hurricane/snp-fall26/output/dpf/dpf_{year}.tif")
+    nbi_rs.rio.to_raster(f"/Volumes/hurricane/snp-fall26/output/nbi/nbi_{year}.tif")
