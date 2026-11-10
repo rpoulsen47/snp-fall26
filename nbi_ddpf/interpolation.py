@@ -38,7 +38,7 @@ def stack_on_doy(data_src: str, year: int, band: int) -> xr.DataArray:
     * `DataArray`
         * The new `DataArray` stacked by *doy*.
     """
-    rasters = sorted(glob.glob(os.path.join(r'F:', data_src, f'*Band{band}*doy{year}*.tif'), recursive=True)) # Get all paths to files in data_src
+    rasters = sorted(glob.glob(os.path.join(r'F:', data_src, f'*Nadir*Band{band}*doy{year}*.tif'), recursive=True)) # Get all paths to files in data_src
     crs_src = rxr.open_rasterio(rasters[0], masked=True).squeeze("band", drop=True).rio.crs # Get the crs of the first raster in the directory to use as template for the others to ensure all rasters match.
 
     rsts, doys = [], [] # blank lists for rasters and doys
@@ -98,15 +98,17 @@ def temporally_weighted_interpolation(rs:xr.DataArray) -> xr.DataArray:
         * New interpolated raster.
     """
     rs_new = rs.copy(deep=True) # Create a copy of the original raster to update with interpolated data
+    doys = [int(i.doy) for i in rs]
+
     for y in range(rs.shape[1]):
         for x in range(rs.shape[2]):
-            new_vals = temporally_weighted_interpolate_pixel(rs=rs, y=int(y), x=int(x)) # New, interpolated, value for each doy in a pixel
-            doys = [int(i.doy) for i in rs]
+            new_vals = temporally_weighted_interpolate_pixel(rs=rs, doys=doys, y=int(y), x=int(x)) # New, interpolated, value for each doy in a pixel
             for doy, val in zip(doys, new_vals):
                 rs_new.sel({'doy':doy})[y][x] = val # Sets the values of the current pixel to be the new_vals.
+                
     return rs_new
 
-def temporally_weighted_interpolate_pixel(rs: xr.DataArray, x:int, y:int, display:bool=False) -> np.array:
+def temporally_weighted_interpolate_pixel(rs: xr.DataArray, doys:list, x:int, y:int, display:bool=False) -> np.array:
     """
     Temporally interpolates a single pixel in a raster, on the *doy* dimension.
     ### Parameters
@@ -124,9 +126,10 @@ def temporally_weighted_interpolate_pixel(rs: xr.DataArray, x:int, y:int, displa
         * A new array of the interpolated values.
     """
 
-    doys = np.array([i for i in range(int(rs[0].doy), len(rs)+int(rs[0].doy))]) # Get a list of the doys
+    # doys = np.array([i for i in range(int(rs[0].doy), len(rs)+int(rs[0].doy))]) # Get a list of the doys
+    # print(doys)
     start, stop = doys[0], doys[-1]
-    values = np.array([rs.sel({'doy':t})[y][x] for t in doys])
+    values = np.array([rs.sel({'doy':doy})[y][x] for doy in doys]) #problem
     dv = pd.DataFrame({"doy": doys, "value": values}).set_index("doy", drop=True)
 
     dv_nonan = dv.dropna().reset_index()
