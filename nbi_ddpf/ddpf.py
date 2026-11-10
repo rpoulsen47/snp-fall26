@@ -13,7 +13,7 @@ import interpolation as interp
 import index
 
 # Set year range, load data
-years = [year for year in range(2000,2006)] # list of all years
+years = [year for year in range(2000, 2026)] # list of all years
 data_src = "/Volumes/hurricane/snp-fall26/data/modis/mcd43a4_061/" # Raw modis data source
 
 for year in years: # run the following code for each year in the study period
