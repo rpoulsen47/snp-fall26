@@ -79,6 +79,8 @@ def nbi(autumn_ndvi: list[xr.DataArray]) -> tuple[xr.DataArray]:
     peak_date_rs = autumn_ndvi[0].copy(True)
 
     for y in range(0, len(autumn_ndvi.y)):
+        # if y == 21:
+        #     return nbi_rs, peak_date_rs
         for x in range(0, len(autumn_ndvi.x)):
             doy_vals = []
             for doy in range(0, len(autumn_ndvi.doy)-1):
@@ -90,18 +92,19 @@ def nbi(autumn_ndvi: list[xr.DataArray]) -> tuple[xr.DataArray]:
             pIn = [baseNDVI, 0.5, baseNDVI, minNDVI] # Initial guess at the parameters to feed into optimize
             autumn_doy = np.array([i for i in range(len(autumn_ndvi.doy)-1)]) + 186
 
-            param, covariance = optimize.curve_fit(f=logistic_fall, xdata=autumn_doy, ydata=doy_vals, p0=pIn, sigma=1, maxfev=5000) # Find the logistic fall equation that fits the NDVI data, Parameters of the logistic fall curve from optimize.curve_fit and covariance
-            # print(param)
-
-            # Normalized Brownness Index
-            paramA = param[0]
-            paramB = param[1]
-
-            nbi_autumn = nbi_pixel(x=autumn_doy, pA=paramA, pB=paramB) # Calculate NBI using the leaf development parameters from the Logistic Fall Function
             try:
+                param, covariance = optimize.curve_fit(f=logistic_fall, xdata=autumn_doy, ydata=doy_vals, p0=pIn, sigma=1) # Find the logistic fall equation that fits the NDVI data, Parameters of the logistic fall curve from optimize.curve_fit and covariance
+
+                # Normalized Brownness Index
+                paramA = param[0]
+                paramB = param[1]
+
+                nbi_autumn = nbi_pixel(x=autumn_doy, pA=paramA, pB=paramB) # Calculate NBI using the leaf development parameters from the Logistic Fall Function
+
                 nbi_rs[y][x] = nbi_autumn[np.where(nbi_autumn >= 0.6)[0][0]]
                 peak_date_rs[y][x] = autumn_doy[np.where(nbi_autumn >= 0.6)[0][0]]
-            except IndexError:
+
+            except: #RuntimeError or IndexError
                 nbi_rs[y][x] = -999
                 peak_date_rs[y][x] = -999
 
