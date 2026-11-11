@@ -1,12 +1,13 @@
 """
-ddpf.py
+dpc.py
 HILARIOUS ATTEMPT TO CULMINATE YEARS OF WORK.
+Main file to calculate the date of peak coloration.
 
 Author....Ryan Poulsen
 Created...10/27/2026
-Updated...11/09/2026
+Updated...11/11/2026
 
-Made with <3, how lucky are we?
+Made with <3, and remember, this is for the leaves.
 """
 
 import interpolation as interp
