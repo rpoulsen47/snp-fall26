@@ -100,15 +100,17 @@ def temporally_weighted_interpolation(rs:xr.DataArray) -> xr.DataArray:
     rs_new = rs.copy(deep=True) # Create a copy of the original raster to update with interpolated data
     doys = [int(i.doy) for i in rs]
 
+    print(f"Now interpolating {rs.year} NDVI...") # Announce start of interpolation process
+
     for y in range(rs.shape[1]):
         for x in range(rs.shape[2]):
             new_vals = temporally_weighted_interpolate_pixel(rs=rs, doys=doys, y=int(y), x=int(x)) # New, interpolated, value for each doy in a pixel
             for doy, val in zip(doys, new_vals):
                 rs_new.sel({'doy':doy})[y][x] = val # Sets the values of the current pixel to be the new_vals.
-                
+        print(f"Row {y+1}/{rs.shape[1]} interpolated.") # status display    
     return rs_new
 
-def temporally_weighted_interpolate_pixel(rs: xr.DataArray, doys:list, x:int, y:int, display:bool=False) -> np.array:
+def temporally_weighted_interpolate_pixel(rs: xr.DataArray, doys:list, x:int, y:int) -> np.array:
     """
     Temporally interpolates a single pixel in a raster, on the *doy* dimension.
     ### Parameters
@@ -118,9 +120,6 @@ def temporally_weighted_interpolate_pixel(rs: xr.DataArray, doys:list, x:int, y:
         * y-coordinate of the pixel to be interpolated.
     * **x**: `int`
         * x-coordinate of the pixel to be interpolated.
-    * **display**: `bool`, *optional*
-        * If `True`, the timeseries of the pixel value will be displayed.
-        * `False` by default.
     ### Returns
     * `array`
         * A new array of the interpolated values.
@@ -139,17 +138,5 @@ def temporally_weighted_interpolate_pixel(rs: xr.DataArray, doys:list, x:int, y:
 
     f = interpolate.interp1d(doys, values, fill_value="extrapolate")
     doy_new = np.linspace(start=start, stop=stop, num=stop)
-    
-    print(f"Pixel at y{y}, x{x} interpolated.")
-
-    if display:
-        plt.plot(doy_new, f(doy_new), "--", color="#2679B4", label="Interpolated Values")  #f_cubic(temp_new) tells it to estimate the enzyme activity at all 200 temps
-        plt.plot(doys, values, 'o', color="#d06f1e", label="Original Data")
-        plt.ylim(0, 1)
-        plt.xlabel("Day of Year")
-        plt.ylabel("NDVI Value")
-        plt.title(f"NDVI Values in {rs.attrs['year']} at x{x}, y{y}")
-        plt.legend()
-        plt.show()
 
     return f(doy_new)
