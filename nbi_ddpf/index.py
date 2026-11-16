@@ -18,17 +18,17 @@ def ndvi(nir: xr.DataArray, red: xr.DataArray) -> xr.DataArray:
     """
     Calculates the Normalized Difference Vegetation Index given red and nir bands. (nir - red) / (nir + red)
     ### Parameters
-    * **red**: `DataArray`
     * **nir**: `DataArray`
+    * **red**: `DataArray`
     ### Returns
     * `DataArray`
         * Normalized Difference Vegetation Index
     """
-    ndvi = (nir - red) / (nir + red)
-    ndvi.attrs.update(red.attrs) 
+    ndvi = (nir - red) / (nir + red) # compute NDVI
+    ndvi.attrs.update(red.attrs) # update output to have the attibutes of the red band
     return ndvi
 
-def smooth_senescent_ndvi(ndvi) -> xr.DataArray:
+def smooth_senescent_ndvi(ndvi: xr.DataArray) -> xr.DataArray:
     """
     Uses a Savitzky-Golay smoothing filter to smooth the ndvi data for the senescent phase of the NDVI (after day 186, the middle of the calendar year).
     ### Parameters
@@ -38,7 +38,7 @@ def smooth_senescent_ndvi(ndvi) -> xr.DataArray:
     * `array`
         * The smoothed ndvi data for the senescent phase.
     """
-    ndvi_smoothed = xr.DataArray(signal.savgol_filter(ndvi, 32, 0), coords=ndvi.coords, attrs=ndvi.attrs)
+    ndvi_smoothed = xr.DataArray(signal.savgol_filter(x=ndvi, window_length=32, polyorder=1, deriv=0, axis = 0, mode = "wrap"), coords=ndvi.coords, attrs=ndvi.attrs) # axis=0 is important, sets smoothing to doy axis; window_length must be shorter than the length of the axis you're working with
     return ndvi_smoothed[186:len(ndvi_smoothed)-1]
 
 # Logistic Fall Functions
@@ -64,7 +64,7 @@ def logistic_fall(x, a: float, b: float, c: float, d: float, x0 = 186):
     """
     return (c/(1+np.exp(a+b*(x-x0))))+d
 
-def logistic_fall_pixel(ndvi_rs: xr.DataArray, x:int, y:int, start:int=186) -> list:
+def logistic_fall_pixel(ndvi_rs: xr.DataArray, x:int, y:int) -> list:
     """
     Fits the logistic fall function to the autumn ndvi data.\n
     ### Parameters
@@ -78,6 +78,7 @@ def logistic_fall_pixel(ndvi_rs: xr.DataArray, x:int, y:int, start:int=186) -> l
     * `list`
         * List of the logistic fall equation parameters in order a, b, c, d.
     """
+    start = ndvi_rs[-1].doy
     end = start + len(ndvi_rs)
     doys = xr.DataArray([i for i in range(start, end)])
     ndvi_rs_p = xr.DataArray([ndvi_rs.sel({"doy":t})[x][y] for t in range(start, end)])
@@ -100,10 +101,10 @@ def nbi(autumn_ndvi: list[xr.DataArray]) -> tuple[xr.DataArray]:
     * **ndvi**: `DataArray`
         * Input ndvi data for a specific autumn season.
     ### Returns
-    * `list[DataArray]`
-        * New interpolated raster.
-    * `list[DataArray]`
-        * New interpolated raster.
+    * **nbi_rs**: `DataArray`
+        * Raster of the nbi at the peak date of coloration.
+    * **peak_date_rs**: `DataArray`
+        * Raster of the peak date of coloration.
     """
     nbi_rs = autumn_ndvi[0].copy(True)
     peak_date_rs = autumn_ndvi[0].copy(True)
@@ -132,11 +133,13 @@ def nbi(autumn_ndvi: list[xr.DataArray]) -> tuple[xr.DataArray]:
                 nbi_rs[y][x] = nbi_autumn[np.where(nbi_autumn >= 0.6)[0][0]]
                 peak_date_rs[y][x] = autumn_doy[np.where(nbi_autumn >= 0.6)[0][0]]
 
+                print(f"DPC {int(peak_date_rs[y][x])} (peak NBI: {float(nbi_rs[y][x]):.3f}) at pixel x{x+1}, y{y+1}.")
+
             except: #RuntimeError or IndexError set to nodata value of -999 (this is because the pixel is likely an urban pixel or evergreen)
                 nbi_rs[y][x] = -999
                 peak_date_rs[y][x] = -999
 
-            print(f"({int(peak_date_rs[y][x])}, {float(nbi_rs[y][x])}) @ ({x}, {y})")
+                print(f"No-data at pixel x{x+1}, y{y+1}.")
 
     return nbi_rs, peak_date_rs
 
