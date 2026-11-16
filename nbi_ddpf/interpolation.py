@@ -4,7 +4,7 @@ HILARIOUS ATTEMPT TO MAKE THIS A GIANT PROGRAM
 
 Author....Ryan Poulsen
 Created...11/04/2025
-Updated...11/09/2026
+Updated...11/16/2026
 
 Made with <3, fueled by mint tea and chocolate chips.
 """
@@ -16,6 +16,7 @@ import numpy as np
 # raster
 import xarray as xr
 import rioxarray as rxr
+import rasterio
 
 # file management
 import os
@@ -30,7 +31,7 @@ import matplotlib.pyplot as plt
 # Raster Functions
 def stack_on_doy(data_src: str, year: int, band: int) -> xr.DataArray:
     """
-    Reads in MODIS data from a directory, then creates a new `DataArray` on the dimension *doy*.
+    Reads in raw MODIS data from a directory, then creates a new `DataArray` on the dimension *doy* for a single year.
     ### Parameters
     * **data_src**: `str`
         * Path to the directory with the data.
@@ -44,11 +45,21 @@ def stack_on_doy(data_src: str, year: int, band: int) -> xr.DataArray:
     rsts, doys = [], [] # blank lists for rasters and doys
     year = None # empty variable for the year
     for r in rasters: # for each raster, open it, get the date, reproject it, then add the raster and the doy to the rsts and doys lists respectively
-        rio_r = rxr.open_rasterio(r, masked=True).squeeze("band", drop=True)
+        try:
+            rio_r = rxr.open_rasterio(r, masked=True).squeeze("band", drop=True)
+        
+        except rasterio.errors.RasterioIOError: # failsafe for if an entire day is missing data or the file is corrupted.
+            rio_r = rsts[-1] # copy previous day's data
+            for y in range(rio_r.shape[0]):
+                for x in range(rio_r.shape[1]):
+                    rio_r[y][x] = None # set all pixels to None/no-data (will be estimated later during the interpolation)
+            print(f"No data at DOY {doys[-1]+1} of {year}.") # announce no-data
+
         year, doy = get_year_doy(r) # get the year and the doy with the get_date() function (uses filename)
         rio_r.rio.reproject(crs_src) # Might not be necessary, but is probably good practice to ensure that all rasters are in the same crs
         rsts.append(rio_r)
-        doys.append(doy)
+        doys.append(doy) 
+
 
     data = xr.Dataset({d: r for d, r in zip(doys, rsts)}).to_array(dim="doy") # Creates a new DataArray with each band stacked.
     data.attrs.update({"year":year}) # add the year as an attribute
