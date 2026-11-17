@@ -1,11 +1,11 @@
 """
-dpc.py
+dpf.py
 HILARIOUS ATTEMPT TO CULMINATE YEARS OF WORK.
 Main file to calculate the date of peak coloration.
 
 Author....Ryan Poulsen
 Created...10/27/2026
-Updated...11/16/2026
+Updated...11/17/2026
 
 Made with <3, and remember, this is for the leaves.
 """
