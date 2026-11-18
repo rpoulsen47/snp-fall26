@@ -1,6 +1,6 @@
 """
 average_dpf.py
-Script to calculate the average date of peak fall foliage, ignoring no-data values.
+Script to calculate the average date of peak fall foliage, ignoring no-data values, at each pixel.
 
 Author....Ryan Poulsen
 Created...11/16/2026
